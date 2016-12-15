@@ -2,9 +2,9 @@ package com.ulisesbocchio.jasyptspringboot.environment;
 
 import com.ulisesbocchio.jasyptspringboot.EncryptablePropertySource;
 import com.ulisesbocchio.jasyptspringboot.InterceptionMode;
-import com.ulisesbocchio.jasyptspringboot.aop.EncryptableMutablePropertySourcesInterceptor;
-import com.ulisesbocchio.jasyptspringboot.configuration.StringEncryptorConfiguration;
 import com.ulisesbocchio.jasyptspringboot.encryptor.LazyStringEncryptor;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
 import org.jasypt.encryption.StringEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,11 +14,9 @@ import org.springframework.core.convert.support.ConfigurableConversionService;
 import org.springframework.core.env.*;
 
 import java.util.Map;
-import java.util.stream.StreamSupport;
 
 import static com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter.instantiatePropertySource;
 import static com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter.proxyPropertySource;
-import static java.util.stream.Collectors.toList;
 
 /**
  * @author Ulises Bocchio
@@ -41,24 +39,30 @@ public class EncryptableEnvironmentProxy implements ConfigurableEnvironment {
     }
 
     private static StringEncryptor discoverEncryptor(ConfigurableEnvironment delegate) {
-        return new LazyStringEncryptor(StringEncryptorConfiguration.DEFAULT_LAZY_ENCRYPTOR_FACTORY, delegate);
+        return new LazyStringEncryptor(delegate);
     }
 
     private MutablePropertySources makeEncryptable(MutablePropertySources propertySources, Environment environment, StringEncryptor encryptor) {
-        StreamSupport.stream(propertySources.spliterator(), false)
-                .filter(ps -> !(ps instanceof EncryptablePropertySource))
-                .map(s -> makeEncryptable(s, environment, encryptor))
-                .collect(toList())
-                .forEach(ps -> propertySources.replace(ps.getName(), ps));
+        for (final PropertySource<?> propertySource : propertySources) {
+            if (!(propertySource instanceof EncryptablePropertySource)) {
+                PropertySource<?> encryptable = makeEncryptable(propertySource, environment, encryptor);
+                propertySources.replace(encryptable.getName(), encryptable);
+            }
+        }
         return proxy(propertySources, environment, encryptor);
     }
 
-    private MutablePropertySources proxy(MutablePropertySources propertySources, Environment environment, StringEncryptor encryptor) {
-        ProxyFactory proxyFactory = new ProxyFactory();
+    private MutablePropertySources proxy(MutablePropertySources propertySources, final Environment environment, final StringEncryptor encryptor) {
+        final ProxyFactory proxyFactory = new ProxyFactory();
         proxyFactory.setTargetClass(MutablePropertySources.class);
         proxyFactory.setProxyTargetClass(true);
         proxyFactory.setTarget(propertySources);
-        proxyFactory.addAdvice(new EncryptableMutablePropertySourcesInterceptor(ps -> makeEncryptable(ps, environment, encryptor)));
+        proxyFactory.addAdvice(new EncryptableMutablePropertySourcesInterceptor(new ConverterFunction() {
+            @Override
+            public PropertySource apply(final PropertySource source) {
+                return makeEncryptable(source, environment, encryptor);
+            }
+        }));
         return (MutablePropertySources) proxyFactory.getProxy();
     }
 
@@ -212,5 +216,45 @@ public class EncryptableEnvironmentProxy implements ConfigurableEnvironment {
     @Override
     public String resolveRequiredPlaceholders(String text) throws IllegalArgumentException {
         return propertyResolver.resolveRequiredPlaceholders(text);
+    }
+
+    private interface ConverterFunction<T extends PropertySource<?>> {
+        PropertySource<T> apply(PropertySource<T> source);
+    }
+
+    /**
+     * @author Ulises Bocchio
+     */
+    public static class EncryptableMutablePropertySourcesInterceptor implements MethodInterceptor {
+
+        private ConverterFunction converter;
+
+        EncryptableMutablePropertySourcesInterceptor(ConverterFunction converter) {
+            this.converter = converter;
+        }
+
+        @Override
+        public Object invoke(MethodInvocation invocation) throws Throwable {
+            String method = invocation.getMethod().getName();
+            Object[] arguments = invocation.getArguments();
+            if (method.equals("addFirst")) {
+                return invocation.getMethod().invoke(invocation.getThis(), makeEncryptable(arguments[0]));
+            } else if (method.equals("addLast")) {
+                return invocation.getMethod().invoke(invocation.getThis(), makeEncryptable(arguments[0]));
+            } else if (method.equals("addBefore")) {
+                return invocation.getMethod().invoke(invocation.getThis(), arguments[0], makeEncryptable(arguments[1]));
+            } else if (method.equals("addAfter")) {
+                return invocation.getMethod().invoke(invocation.getThis(), arguments[0], makeEncryptable(arguments[1]));
+            } else if (method.equals("replace")) {
+                return invocation.getMethod().invoke(invocation.getThis(), arguments[0], makeEncryptable(arguments[1]));
+            } else {
+                return invocation.proceed();
+            }
+
+        }
+
+        private Object makeEncryptable(Object argument) {
+            return converter.apply((PropertySource<?>) argument);
+        }
     }
 }

@@ -1,9 +1,8 @@
 package com.ulisesbocchio.jasyptspringboot.wrapper;
 
 import com.ulisesbocchio.jasyptspringboot.EncryptablePropertySource;
-
+import com.ulisesbocchio.jasyptspringboot.Helper;
 import org.jasypt.encryption.StringEncryptor;
-import org.jasypt.properties.PropertyValueEncryptionUtils;
 import org.springframework.core.env.PropertySource;
 import org.springframework.util.Assert;
 
@@ -29,6 +28,6 @@ public class EncryptablePropertySourceWrapper<T> extends PropertySource<T> imple
 
     @Override
     public Object getProperty(String name) {
-        return getProperty(encryptor, delegate, name);
+        return Helper.getProperty(encryptor, delegate, name);
     }
 }

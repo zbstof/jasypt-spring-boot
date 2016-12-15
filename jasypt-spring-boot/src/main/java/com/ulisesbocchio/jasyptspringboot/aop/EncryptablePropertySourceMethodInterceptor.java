@@ -1,11 +1,13 @@
 package com.ulisesbocchio.jasyptspringboot.aop;
 
 import com.ulisesbocchio.jasyptspringboot.EncryptablePropertySource;
-
+import com.ulisesbocchio.jasyptspringboot.Helper;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.jasypt.encryption.StringEncryptor;
 import org.springframework.core.env.PropertySource;
+
+import java.lang.reflect.Parameter;
 
 /**
  * @author Ulises Bocchio
@@ -22,7 +24,7 @@ public class EncryptablePropertySourceMethodInterceptor<T> implements MethodInte
     public Object invoke(MethodInvocation invocation) throws Throwable {
         Object returnValue = invocation.proceed();
         if(isGetPropertyCall(invocation)) {
-            return getProperty(encryptor, getPropertySource(invocation), getNameArgument(invocation));
+            return Helper.getProperty(encryptor, getPropertySource(invocation), getNameArgument(invocation));
         }
         return returnValue;
     }
@@ -37,8 +39,9 @@ public class EncryptablePropertySourceMethodInterceptor<T> implements MethodInte
     }
 
     private boolean isGetPropertyCall(MethodInvocation invocation) {
+        Parameter[] parameters = invocation.getMethod().getParameters();
         return invocation.getMethod().getName().equals("getProperty")
-                && invocation.getMethod().getParameters().length == 1
-                && invocation.getMethod().getParameters()[0].getType() == String.class;
+                && parameters.length == 1
+                && parameters[0].getType() == String.class;
     }
 }

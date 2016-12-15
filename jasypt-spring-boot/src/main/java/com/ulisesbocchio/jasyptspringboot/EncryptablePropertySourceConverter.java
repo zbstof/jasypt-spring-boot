@@ -27,7 +27,7 @@ public class EncryptablePropertySourceConverter {
         proxyFactory.setProxyTargetClass(true);
         proxyFactory.addInterface(EncryptablePropertySource.class);
         proxyFactory.setTarget(propertySource);
-        proxyFactory.addAdvice(new EncryptablePropertySourceMethodInterceptor<>(encryptor));
+        proxyFactory.addAdvice(new EncryptablePropertySourceMethodInterceptor<StringEncryptor>(encryptor));
         return (PropertySource<T>) proxyFactory.getProxy();
     }
 
@@ -40,9 +40,9 @@ public class EncryptablePropertySourceConverter {
             //Some Spring Boot code actually casts property sources to this specific type so must be proxied.
             encryptablePropertySource = proxyPropertySource(propertySource, encryptor);
         } else if (propertySource instanceof EnumerablePropertySource) {
-            encryptablePropertySource = new EncryptableEnumerablePropertySourceWrapper<>((EnumerablePropertySource) propertySource, encryptor);
+            encryptablePropertySource = new EncryptableEnumerablePropertySourceWrapper<T>((EnumerablePropertySource) propertySource, encryptor);
         } else {
-            encryptablePropertySource = new EncryptablePropertySourceWrapper<>(propertySource, encryptor);
+            encryptablePropertySource = new EncryptablePropertySourceWrapper<T>(propertySource, encryptor);
         }
         return encryptablePropertySource;
     }

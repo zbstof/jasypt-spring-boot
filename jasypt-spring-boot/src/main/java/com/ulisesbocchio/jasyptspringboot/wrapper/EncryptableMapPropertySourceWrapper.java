@@ -1,7 +1,7 @@
 package com.ulisesbocchio.jasyptspringboot.wrapper;
 
 import com.ulisesbocchio.jasyptspringboot.EncryptablePropertySource;
-
+import com.ulisesbocchio.jasyptspringboot.Helper;
 import org.jasypt.encryption.StringEncryptor;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.Assert;
@@ -25,6 +25,6 @@ public class EncryptableMapPropertySourceWrapper extends MapPropertySource imple
 
     @Override
     public Object getProperty(String name) {
-        return getProperty(encryptor, delegate, name);
+        return Helper.getProperty(encryptor, delegate, name);
     }
 }

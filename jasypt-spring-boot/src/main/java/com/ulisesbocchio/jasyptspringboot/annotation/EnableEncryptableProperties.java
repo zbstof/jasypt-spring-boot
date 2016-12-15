@@ -1,7 +1,7 @@
 package com.ulisesbocchio.jasyptspringboot.annotation;
 
-import com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertySourcesConfiguration;
 import com.ulisesbocchio.jasyptspringboot.EnableEncryptablePropertySourcesPostProcessor;
+import com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertySourcesConfiguration;
 import com.ulisesbocchio.jasyptspringboot.wrapper.EncryptablePropertySourceWrapper;
 import org.jasypt.encryption.StringEncryptor;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;

@@ -15,12 +15,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
 
-import java.util.stream.StreamSupport;
-
 import static com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter.instantiatePropertySource;
 import static com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter.proxyPropertySource;
 import static com.ulisesbocchio.jasyptspringboot.configuration.StringEncryptorConfiguration.ENCRYPTOR_BEAN_PLACEHOLDER;
-import static java.util.stream.Collectors.toList;
 
 /**
  * <p>{@link BeanFactoryPostProcessor} that wraps all {@link PropertySource} defined in the {@link Environment}
@@ -61,11 +58,12 @@ public class EnableEncryptablePropertySourcesPostProcessor implements BeanFactor
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
         LOG.info("Post-processing PropertySource instances");
         MutablePropertySources propSources = environment.getPropertySources();
-        StreamSupport.stream(propSources.spliterator(), false)
-                .filter(ps -> !(ps instanceof EncryptablePropertySource))
-                .map(s -> makeEncryptable(s, beanFactory))
-                .collect(toList())
-                .forEach(ps -> propSources.replace(ps.getName(), ps));
+        for (final PropertySource<?> propertySource : propSources) {
+            if (!(propertySource instanceof EncryptablePropertySource)) {
+                PropertySource<?> encryptablePropertySource = makeEncryptable(propertySource, beanFactory);
+                propSources.replace(encryptablePropertySource.getName(), encryptablePropertySource);
+            }
+        }
     }
 
     @Override

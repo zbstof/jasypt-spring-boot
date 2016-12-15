@@ -1,6 +1,5 @@
 package com.ulisesbocchio.jasyptspringboot.environment;
 
-import com.ulisesbocchio.jasyptspringboot.configuration.StringEncryptorConfiguration;
 import com.ulisesbocchio.jasyptspringboot.encryptor.LazyStringEncryptor;
 import org.jasypt.encryption.StringEncryptor;
 import org.jasypt.properties.PropertyValueEncryptionUtils;
@@ -20,17 +19,13 @@ public class EncryptableEnvironment implements ConfigurableEnvironment {
     private StringEncryptor encryptor;
 
     public EncryptableEnvironment(ConfigurableEnvironment delegate) {
-        this(delegate, discoverEncryptor(delegate));
+        this(delegate, new LazyStringEncryptor(delegate));
     }
 
     public EncryptableEnvironment(ConfigurableEnvironment delegate, StringEncryptor encryptor) {
         super();
         this.delegate = delegate;
         this.encryptor = encryptor;
-    }
-
-    private static StringEncryptor discoverEncryptor(ConfigurableEnvironment delegate) {
-        return new LazyStringEncryptor(StringEncryptorConfiguration.DEFAULT_LAZY_ENCRYPTOR_FACTORY, delegate);
     }
 
     @Override
